@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра на умножение</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .questions {
+            margin-top: 20px;
+        }
+        .question {
+            margin: 10px 0;
+        }
+        #timer {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        .leaderboard {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .leaderboard table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .leaderboard th, .leaderboard td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .leaderboard th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="game">
+    <h1>Игра на умножение</h1>
+    <button id="startButton" onclick="startGame()">Начать</button>
+    <button id="leaderboardButton" onclick="showLeaderboard()">Лидеры</button>
+    <div class="questions" id="questions" style="display: none;"></div>
+    <div id="timer" style="display: none;">Время: <span id="time">0</span> секунд</div>
+    <div id="nameInput" style="display: none;">
+        <input type="text" id="username" placeholder="Введите ваше имя" />
+        <button onclick="saveScore()">Сохранить</button>
+    </div>
+    <div class="leaderboard" id="leaderboard" style="display: none;">
+        <h2>Таблица лидеров</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Имя</th>
+                    <th>Время</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardTable">
+                <!-- Здесь будут отображаться лидеры -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let currentQuestion = 0;
+    let timerInterval;
+    let startTime;
+    const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+    const questions = [];
+
+    function startGame() {
+        document.getElementById("startButton").style.display = "none";
+        document.getElementById("leaderboardButton").style.display = "none";
+        document.getElementById("questions").style.display = "block";
+        document.getElementById("timer").style.display = "block";
+        document.getElementById("leaderboard").style.display = "none";
+        document.getElementById("nameInput").style.display = "none";
+
+        currentQuestion = 0;
+        generateQuestions();
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+        displayNextQuestion();
+    }
+
+    function generateQuestions() {
+        for (let i = 0; i < 7; i++) {
+            const a = Math.floor(Math.random() * 8) + 2;
+            const b = Math.floor(Math.random() * 8) + 2;
+            questions.push({ a, b, answer: a * b });
+        }
+    }
+
+    function displayNextQuestion() {
+        if (currentQuestion < questions.length) {
+            const question = questions[currentQuestion];
+            const questionDiv = document.createElement('div');
+            questionDiv.classList.add('question');
+            questionDiv.innerHTML = `
+                <p>Вопрос ${currentQuestion + 1}: ${question.a} × ${question.b}</p>
+                <input type="number" id="answer${currentQuestion}" placeholder="Ответ" />
+                <button onclick="checkAnswer(${question.answer})">Ответить</button>
+            `;
+            document.getElementById("questions").innerHTML = "";
+            document.getElementById("questions").appendChild(questionDiv);
+        } else {
+            clearInterval(timerInterval);
+            document.getElementById("nameInput").style.display = "block";
+        }
+    }
+
+    function checkAnswer(correctAnswer) {
+        const userAnswer = document.getElementById(`answer${currentQuestion}`).value;
+        if (parseInt(userAnswer) === correctAnswer) {
+            currentQuestion++;
+            displayNextQuestion();
+        } else {
+            alert("Неправильный ответ. Попробуйте снова.");
+        }
+    }
+
+    function updateTimer() {
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById("time").textContent = elapsedTime;
+    }
+
+    function saveScore() {
+        const username = document.getElementById("username").value;
+        const time = document.getElementById("time").textContent;
+        leaderboard.push({ username, time });
+
+        leaderboard.sort((a, b) => a.time - b.time);
+
+        localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+        updateLeaderboard();
+        resetGame();
+    }
+
+    function updateLeaderboard() {
+        const table = document.getElementById("leaderboardTable");
+        table.innerHTML = "";
+        leaderboard.forEach((entry, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${entry.username}</td>
+                <td>${entry.time}</td>
+            `;
+            table.appendChild(row);
+        });
+        document.getElementById("leaderboard").style.display = "block";
+    }
+
+    function showLeaderboard() {
+        document.getElementById("game").style.display = "none";
+        updateLeaderboard();
+        document.getElementById("leaderboard").style.display = "block";
+    }
+
+    function resetGame() {
+        document.getElementById("nameInput").style.display = "none";
+        document.getElementById("questions").style.display = "none";
+        document.getElementById("timer").style.display = "none";
+        document.getElementById("startButton").style.display = "inline-block";
+        document.getElementById("leaderboardButton").style.display = "inline-block";
+        document.getElementById("username").value = "";
+    }
+</script>
+
+</body>
+</html>
